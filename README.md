@@ -71,20 +71,18 @@ powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1 -target tra
 madong-saas-skills/
 ├── README.md                     # ← 本文件
 ├── sync.ps1                       # ← 同步脚本
-├── backend/                      # 后端 26 项
+├── backend/                      # 后端 43 项（23 规范性 + 20 代码生成）
 │   ├── controller/              # 控制器规范
 │   ├── service/                 # 服务层规范
 │   ├── dao/                     # 数据访问层
 │   ├── model/                   # 模型规范
 │   ├── validate/                # 验证器
 │   ├── schema/                  # Schema DTO
-│   ├── migrate/                 # 数据库迁移
 │   ├── event/                   # 事件
 │   ├── listener/                # 监听器
 │   ├── route/                   # 路由
 │   ├── lang/                    # 国际化
 │   ├── logger/                  # 日志
-│   ├── parse/                   # 表解析
 │   ├── config/                  # 配置体系
 │   ├── bootstrap/               # 启动引导
 │   ├── enum/                    # 枚举
@@ -95,25 +93,61 @@ madong-saas-skills/
 │   ├── command/                 # 命令行
 │   ├── crontab/                 # 定时任务
 │   ├── swagger/                 # Swagger 注解
-│   ├── generator/               # 代码生成器
 │   ├── exception/               # 异常体系
-│   └── tests/                   # 测试
-├── frontend/                    # 前端 10 项
-│   ├── common/                  # 公共规范
-│   ├── api/                     # API 层
-│   ├── adapter/                 # 适配器
-│   ├── component/               # 公共组件
-│   ├── i18n/                    # 国际化
-│   ├── bootstrap/               # 启动引导
-│   └── apps/
-│       ├── view/                # 视图层
-│       ├── router/              # 路由
-│       ├── store/               # 状态管理
-│       └── tests/               # 测试
-└── cross/                       # 跨层 3 项
+│   ├── tests/                   # 测试
+│   └── gen/                     # 代码生成 20 项
+│       ├── generator/           # 代码生成器规范
+│       ├── parse/               # 表解析规范
+│       ├── migrate/             # 数据库迁移规范
+│       ├── crud/                # CRUD 全流程生成
+│       ├── controller/          # 控制器代码生成
+│       ├── service/             # 服务代码生成
+│       ├── dao/                 # DAO 代码生成
+│       ├── model/               # 模型代码生成
+│       ├── validate/            # 验证器代码生成
+│       ├── schema/              # Schema 代码生成
+│       ├── api-controller/      # 前台 API 控制器生成
+│       ├── api-service/         # 前台 API 服务生成
+│       ├── event/               # 事件生成
+│       ├── listener/            # 监听器生成
+│       ├── route/               # 路由配置生成
+│       ├── migration/           # 迁移文件生成
+│       ├── parse-table/         # 表解析生成
+│       ├── i18n-backend/        # 后端国际化生成
+│       ├── frontend/            # 前端页面生成
+│       └── i18n-frontend/       # 前端国际化生成
+├── frontend/                    # 前端 21 项（按应用归类）
+│   ├── shared/                  # 共享 3 项（admin/platform 一致的部分）
+│   │   ├── adapter/             # Vben 适配器
+│   │   ├── component/           # 公共基础组件
+│   │   └── i18n/                # 国际化
+│   ├── admin/                   # Admin 7 项
+│   │   ├── api/                 # API 层 + 多租户 X-Tenant-Id + SSE
+│   │   ├── bootstrap/           # Vben 启动 + @madong/admin
+│   │   ├── component/           # Admin 特有组件（tenant-switch/terminal）
+│   │   ├── router/              # Admin 路由 + admin.php 菜单
+│   │   ├── store/               # auth(多租户) + notify(WebSocket) + dict
+│   │   ├── view/                # Admin 视图层（10 个业务模块）
+│   │   └── tests/               # 测试
+│   ├── platform/                # Platform 7 项
+│   │   ├── api/                 # API 层 + SSE（无多租户）
+│   │   ├── bootstrap/           # Vben 启动 + @madong/platform
+│   │   ├── component/           # Platform 特有组件（notification-drawer）
+│   │   ├── router/              # Platform 路由 + platform.php 菜单
+│   │   ├── store/               # auth(无多租户) + dict
+│   │   ├── view/                # Platform 视图层（6 个业务模块）
+│   │   └── tests/               # 测试
+│   └── install/                 # Install 4 项（独立轻量应用）
+│       ├── api/                 # axios 请求客户端
+│       ├── bootstrap/           # 直接 createApp + ElementPlus
+│       ├── component/           # 安装步骤组件（6 步骤）
+│       └── store/               # useInstallStore（选项式 API + SSE）
+└── cross/                       # 跨层 5 项
     ├── api-convention/          # API 对接规范
     ├── database/                # 数据库设计规范
-    └── app-skeleton/            # 站点脚手架
+    ├── app-skeleton/            # 站点脚手架
+    ├── git-convention/          # Git 提交规范（lefthook + commitlint + czg）
+    └── lint-format/             # Lint/Format 规范（oxfmt + oxlint + eslint + stylelint）
 ```
 
 ---
@@ -125,9 +159,11 @@ madong-saas-skills/
 | 场景 | 推荐技能 |
 |------|---------|
 | **写后端 CRUD** | controller + service + dao + model + validate + schema + route + swagger + enum |
-| **写前端页面** | api + view + component + adapter + store + router + i18n |
-| **整体项目开发** | 以上全部 + cross/api-convention + cross/database |
-| **代码生成** | generator + parse + migrate |
+| **写 Admin 页面** | admin/* 全部 + shared/* |
+| **写 Platform 页面** | platform/* 全部 + shared/* |
+| **写 Install 页面** | install/* 全部 |
+| **整体项目开发** | 以上全部 + cross/* |
+| **代码生成** | backend/gen/* |
 | **运维/调试** | config + bootstrap + exception + logger + middleware + scope + command + crontab |
 
 ---
@@ -179,6 +215,8 @@ madong-saas-skills/
 
 ### Git 提交规范
 
+> 完整规范见 `cross/git-convention/SKILL.md`，包括 lefthook + commitlint + czg 工具链。
+
 ```
 <type>(<scope>): <subject>
 ```
@@ -194,21 +232,23 @@ madong-saas-skills/
 | `docs` | 文档更新 |
 | `test` | 测试相关 |
 | `revert` | 回退 |
+| `types` | 类型定义变更 |
+| `release` | 发版 |
 
 | scope | 说明 |
 |-------|------|
-| `admin` | Admin 前端 |
-| `platform` | Platform 前端/后端 |
-| `api` | API 端 |
-| `install` | 安装模块 |
-| `core` | Core 基础设施 |
-| `server` | 服务端公共 |
-| `plugin` | 插件 |
-| `tenant` | 多租户 |
+| `@madong/admin` | Admin 前端 |
+| `@madong/platform` | Platform 前端 |
+| `@madong/install` | Install 前端 |
+| `project` | 项目级 |
+| `lint` | Lint 配置 |
+| `ci` | CI 配置 |
+| `deploy` | 部署 |
+| `other` | 其他 |
 
 ```
-feat(admin): 新增会员积分管理页面
-fix(api): 修复会员登录验证码校验失败问题
+feat(@madong/admin): 新增会员积分管理页面
+fix(@madong/platform): 修复租户列表分页问题
 refactor(server): 重构菜单服务的查询逻辑
 chore(core): 升级 webman 框架到 2.2
 ```

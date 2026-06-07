@@ -181,7 +181,7 @@ if ($targets -contains 'copilot') {
         $null = $sb.AppendLine("")
         $null = $sb.AppendLine("## $category / $skillName")
 
-        $content = Get-Content $skill.FullName -Raw
+        $content = [System.IO.File]::ReadAllText($skill.FullName)
         $content = $content -replace '(?s)^---\n.*?\n---\n', ''
         $null = $sb.AppendLine("")
         $null = $sb.AppendLine($content.Trim())

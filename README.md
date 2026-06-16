@@ -4,6 +4,7 @@
 
 ## 快速开始
 
+### Windows
 ```powershell
 # 一键同步全部（默认）
 powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1
@@ -13,6 +14,21 @@ powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1 -target cod
 powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1 -target cursor
 powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1 -target trae
 powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1 -target copilot
+```
+
+### macOS / Linux
+```bash
+# 首次使用赋予执行权限
+chmod +x madong-saas-skills/sync.sh
+
+# 一键同步全部（默认）
+./madong-saas-skills/sync.sh
+
+# 只同步你用的编辑器（推荐）
+./madong-saas-skills/sync.sh codebuddy
+./madong-saas-skills/sync.sh cursor
+./madong-saas-skills/sync.sh trae
+./madong-saas-skills/sync.sh copilot
 ```
 
 执行后根据你使用的编辑器查看对应章节：
@@ -43,12 +59,22 @@ powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1 -target cop
 
 ## 一键同步（详细）
 
+**Windows:**
 ```powershell
 # 同步全部
 powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1
 
 # 或只同步特定编辑器（推荐）
 powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1 -target trae
+```
+
+**macOS / Linux:**
+```bash
+# 同步全部
+bash madong-saas-skills/sync.sh
+
+# 或只同步特定编辑器（推荐）
+bash madong-saas-skills/sync.sh trae
 ```
 
 脚本将所有技能分发到（根据 `-target` 参数过滤）：
@@ -70,7 +96,8 @@ powershell -ExecutionPolicy Bypass -File madong-saas-skills\sync.ps1 -target tra
 ```
 madong-saas-skills/
 ├── README.md                     # ← 本文件
-├── sync.ps1                       # ← 同步脚本
+├── sync.ps1                       # ← 同步脚本（Windows PowerShell）
+├── sync.sh                        # ← 同步脚本（macOS / Linux bash）
 ├── backend/                      # 后端 43 项（23 规范性 + 20 代码生成）
 │   ├── controller/              # 控制器规范
 │   ├── service/                 # 服务层规范

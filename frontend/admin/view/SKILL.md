@@ -46,7 +46,17 @@ const crudSchema = useCrudSchemas(schemas.crudSchema);
     />
   </Page>
 </template>
+
+<style lang="scss" scoped>
+//
+</style>
 ```
+
+## 样式约定
+
+- 所有 Vue 组件的 `<style>` 块必须使用 `<style lang="scss" scoped>`
+- 避免全局样式污染，列表页样式一律 `scoped`
+- 无需自定义样式时可省略 `<style>` 块，默认不生成
 
 ## Admin 业务模块
 

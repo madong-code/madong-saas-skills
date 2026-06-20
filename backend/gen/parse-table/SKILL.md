@@ -127,7 +127,7 @@ Fields:
 | integer | `unsignedInteger('x')` | `el-input-number` |
 | bigint | `unsignedBigInteger('x')` | `el-input-number` |
 | decimal(m,n) | `decimal('x', m, n)` | `el-input-number` |
-| tinyint | `tinyInteger('x')` | `ApiDict` |
+| tinyint | `tinyInteger('x')` | 表格列: `cellRender: { name: 'CellDictTag', attrs: { code: DictEnum.SYS_XXX } }`; 表单: `ApiDict` |
 | foreign_key | `unsignedBigInteger('x')` | `ApiSelect` |
 | date | `date('x')` | `DatePicker` |
 | datetime | `dateTime('x')` | `DateTimePicker` |

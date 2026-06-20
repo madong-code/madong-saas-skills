@@ -73,6 +73,36 @@ views/{module}/{name}/index.vue → 路由 name: Platform{Model}List
 - schemas 格式与 Admin 相同
 - 业务模块少于 Admin（6 vs 10），聚焦平台运维
 
+## 表格列渲染器使用
+
+在 `crudSchema` 中，**状态/开关/字典类字段** 使用 `cellRender` 配置 vxe-table 渲染器：
+
+```typescript
+// ✅ 正确用法
+import { DictEnum } from '#/enums/dict-enum';
+
+// crudSchema 列定义示例
+[
+  // 启用/禁用状态 - 使用 CellDictTag + DictEnum
+  {
+    field: 'enabled',
+    title: '状态',
+    width: 80,
+    cellRender: { name: 'CellDictTag', attrs: { code: DictEnum.SYS_ENABLED_STATUS } },
+  },
+  // 普通文本列
+  {
+    field: 'name',
+    title: '名称',
+    minWidth: 150,
+  },
+]
+
+// ❌ 错误用法 - viewComponent 模式已废弃
+// viewComponent: 'ApiDict',
+// viewComponentProps: { code: 'sys_type' },
+```
+
 ## 检查清单
 
 - [ ] `defineOptions` 是否设置了正确的组件名（Platform 前缀）

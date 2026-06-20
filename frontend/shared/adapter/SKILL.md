@@ -26,10 +26,9 @@ import { useVbenForm } from '@vben/common-ui';
 
 export { useVbenForm };
 
-// 表单 schema 扩展（支持 viewComponent 详情展示）
+// 表单 schema
 export interface VbenFormSchema {
   // 默认 useVbenForm 的 schema 属性
-  // 可扩展 viewComponent 用于详情展示
 }
 ```
 
@@ -67,6 +66,24 @@ globalShareState.setComponents(componentMap);
 - CRUD 适配器导出：`Crud` 组件、`useCrud` hooks、类型定义
 - admin 和 platform 使用相同的适配器代码
 - **install 不使用此适配器**，直接使用 ElementPlus
+
+## 表格列渲染器使用规范
+
+表格列中使用渲染器的正确方式：
+
+```typescript
+// ✅ 正确：通过 cellRender 配置 vxe-table 渲染器
+{
+  field: 'status',
+  title: '状态',
+  width: 80,
+  cellRender: { name: 'CellDictTag', attrs: { code: DictEnum.SYS_ENABLED_STATUS } },
+}
+
+// ❌ 错误：不要使用 viewComponent / viewComponentProps
+// viewComponent: 'ApiDict',
+// viewComponentProps: { code: 'sys_menu_type' },
+```
 
 ## 检查清单
 

@@ -27,9 +27,10 @@ apps/{admin,platform}/src/components/
 │       ├── api-select/      # API 选择器
 │       ├── api-dict/        # 字典选择器
 │       └── ...
-├── render/                  # 渲染组件
+├── render/                  # 渲染组件 (vxe-table cellRender)
 │   └── components/
 │       ├── cell-dict/       # 字典单元格
+│       ├── cell-dict-tag/   # 字典标签 (通过 DictEnum 编码渲染状态标签)
 │       ├── cell-tag/        # 标签单元格
 │       ├── cell-switch/     # 开关单元格
 │       ├── cell-image/      # 图片单元格
@@ -78,6 +79,37 @@ dialogApi.openView({ id: 1 });
 
 ## 渲染组件
 
+### 表格列中使用渲染器（推荐方式）
+
+在 schema 的 `crudSchema` 中通过 `cellRender` 配置 vxe-table 渲染器：
+
+```typescript
+// ✅ 正确用法 - 使用 cellRender + attrs
+{
+  field: 'enabled',
+  title: '状态',
+  width: 80,
+  cellRender: { name: 'CellDictTag', attrs: { code: DictEnum.SYS_YES_NO } },
+}
+
+// ❌ 错误用法 - 不要直接使用 viewComponent
+// viewComponent: 'ApiDict',                ← 不推荐
+// viewComponentProps: { code: 'sys_type' }, ← 不推荐
+```
+
+常见的字典编码使用 `DictEnum` 枚举：
+
+```typescript
+import { DictEnum } from '#/enums/dict-enum';
+
+// 可用编码示例
+DictEnum.SYS_ENABLED_STATUS   // 启用/禁用
+DictEnum.SYS_YES_NO           // 是/否
+DictEnum.SYS_MENU_TYPE        // 菜单类型
+```
+
+### 模板中使用（不常用）
+
 ```vue
 <!-- 字典标签 -->
 <CellDict :value="row.status" :options="statusOptions" />
@@ -92,7 +124,7 @@ dialogApi.openView({ id: 1 });
 - 公共组件放在 `components/` 目录下，按功能分类
 - FormDialog 是推荐的弹窗表单方案，优先使用 `useFormDialog`
 - CRUD 组件基于 Vben 的 `BasicTable` 封装
-- 渲染组件用于列表列中格式化显示，不单独使用
+- **渲染组件的正确用法：在 schema 中通过 `cellRender: { name: '组件名', attrs: {...} }` 配置，不要使用 `viewComponent`**
 - admin 和 platform 共享以上基础组件
 
 ## 应用差异

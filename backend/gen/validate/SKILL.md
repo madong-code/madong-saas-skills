@@ -26,6 +26,9 @@ plugin/{plugin}/app/adminapi/validate/{module}/{Model}Validate.php
 | `{prefix}` | `` (空) | `plugin\{Plugin}` |
 | `{ns}` | `app` | `plugin\{Plugin}\app` |
 | `{model_ns}` | `app\model` | `plugin\{Plugin}\app\model` |
+| `{validate_ns}` | `app\adminapi\validate` | `plugin\{Plugin}\app\adminapi\validate` |
+
+> **注意**: 基于 portal 实际实现，validate 目录可能为空（验证逻辑直接在 Controller 中完成）。Generate 时可以跳过 validate 生成，除非需要独立的验证器。
 
 ## Validate Template
 

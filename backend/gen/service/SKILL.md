@@ -52,7 +52,7 @@ declare(strict_types=1);
 namespace {ns}\service\admin\{module};
 
 use {dao_ns}\{module}\{Model}Dao;
-use core\base\BaseService;
+use core\foundation\base\BaseService;
 
 /**
  * {Model}服务层

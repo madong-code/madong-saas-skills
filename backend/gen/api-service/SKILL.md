@@ -1,22 +1,24 @@
 ---
 name: madong-gen-api-service
-description: Generate API service class for madong module前台API服务层. Supports both app (main project) and plugin targets. Creates service extending BaseService with DAO injection and standard CRUD operations for public/member access.
+description: Generate API service class for madong module (前台 API 服务层). Supports both app (main project) and plugin targets. Creates service extending BaseService with DAO injection and custom business methods.
 ---
 
 # Generate API Service (前台 API 服务层)
 
 Create service class for module (前台 API 访问).
 
+> **注意**: 基于 portal 插件实际实现，API 服务层使用自定义业务方法（非通用 CRUD 代理），通过 `Container::make(CurrentMember::class)` 获取当前会员信息。
+
 ## File Location
 
 **App (主项目):**
 ```
-app/service/api/{module}/{Model}Service.php
+app/api/service/{module}/{Model}Service.php
 ```
 
 **Plugin (插件):**
 ```
-plugin/{plugin}/app/service/api/{module}/{Model}Service.php
+plugin/{plugin}/app/api/service/{module}/{Model}Service.php
 ```
 
 ## Target Variables
@@ -30,10 +32,11 @@ plugin/{plugin}/app/service/api/{module}/{Model}Service.php
 
 ## API Service Features
 
-- **继承 BaseService**: 继承 `core\base\BaseService`
-- **轻量级操作**: 不触发事件，适合公开访问
-- **雪花ID**: 支持雪花ID作为主键
-- **会员关联**: 支持与会员关联的数据操作
+- **继承 BaseService**: 继承 `core\foundation\base\BaseService`
+- **自定义方法**: 使用 `getList()`、`create()`、`detail()`、`update()`、`delete()` 等业务方法
+- **会员获取**: 通过 `Container::make(CurrentMember::class)->id()` 获取当前会员
+- **事务支持**: 使用 `$this->transaction()` 执行事务操作
+- **事件触发**: 可在业务方法中派发事件
 
 ## API Service Template
 
@@ -45,183 +48,96 @@ declare(strict_types=1);
  *+------------------
  * madong
  *+------------------
- * Copyright (c) https://gitee.com/motion-code All rights reserved.
+ * Copyright (c) https://gitee.com/motion-code  All rights reserved.
  *+------------------
  * Author: Mr. April (405784684@qq.com)
  *+------------------
+ * Official Website: http://www.madong.tech
  */
 
-namespace {ns}\service\api\{module};
+namespace {ns}\api\service\{module};
 
+use app\api\CurrentMember;
 use {dao_ns}\{module}\{Model}Dao;
 use {model_ns}\{module}\{Model};
-use core\base\BaseService;
+use core\foundation\base\BaseService;
+use support\Container;
 
 /**
  * {Model}前台API服务类
- *
- * Class {Model}Service
  */
 class {Model}Service extends BaseService
 {
-    /**
-     * 注入{Model}Dao
-     *
-     * @param {Model}Dao $dao
-     */
     public function __construct({Model}Dao $dao)
     {
         $this->dao = $dao;
     }
 
     /**
-     * 获取{Model}Dao
-     *
-     * @return {Model}Dao
-     */
-    public function getDao(): {Model}Dao
-    {
-        return $this->dao;
-    }
-
-    /**
      * 获取列表
-     *
-     * @param array $where 查询条件
-     * @param string $field 查询字段
-     * @param int $page 页码
-     * @param int $limit 每页数量
-     * @param string $order 排序
-     * @return array
      */
-    public function selectList(array $where = [], string $field = '*', int $page = 1, int $limit = 20, string $order = 'id desc'): array
+    public function getList(array $params): array
     {
-        $list = $this->dao->selectList($where, $field, $page, $limit, $order);
-        return {Model}::formatList($list);
-    }
-
-    /**
-     * 获取总数
-     *
-     * @param array $where 查询条件
-     * @return int
-     */
-    public function count(array $where = []): int
-    {
-        return $this->dao->count($where);
+        // 自定义查询逻辑
+        return $this->dao->getList($params);
     }
 
     /**
      * 获取详情
-     *
-     * @param int $id
-     * @param array $field
-     * @return array
      */
-    public function get(int $id, array $field = ['*']): array
+    public function detail(string $id): array
     {
-        $data = $this->dao->findOrFail($id, $field);
-        return {Model}::formatDetail($data);
+        return $this->dao->detail($id);
     }
 
     /**
      * 创建
-     *
-     * @param array $data
-     * @return {Model}
      */
-    public function save(array $data): {Model}
+    public function create(array $data): array
     {
-        // 如果需要关联会员，自动设置会员ID
-        if ($this->hasMemberField() && isset($this->memberId)) {
-            $memberField = $this->getMemberField();
-            if ($memberField && !isset($data[$memberField])) {
-                $data[$memberField] = $this->memberId;
-            }
-        }
-
-        return $this->dao->create($data);
+        return $this->transaction(function () use ($data) {
+            $model = $this->save($data);
+            // 业务逻辑：关联数据、触发事件等
+            return $model->load(['relation'])->toArray();
+        });
     }
 
     /**
      * 更新
-     *
-     * @param int $id
-     * @param array $data
-     * @return bool
      */
-    public function update(int $id, array $data): bool
+    public function update(string $id, array $data): array
     {
-        // 检查是否为会员自己的数据
-        if ($this->hasMemberField()) {
-            $memberField = $this->getMemberField();
-            $record = $this->dao->findWhere([$memberField => $this->memberId, 'id' => $id]);
-            if (!$record) {
-                throw new \Exception('无权修改此数据');
-            }
-        }
-
-        return $this->dao->update($id, $data);
+        return $this->transaction(function () use ($id, $data) {
+            $model = $this->dao->update($id, $data);
+            return $model->toArray();
+        });
     }
 
     /**
      * 删除
-     *
-     * @param int $id
-     * @return bool
      */
-    public function delete(int $id): bool
+    public function delete(string $id): bool
     {
-        // 检查是否为会员自己的数据
-        if ($this->hasMemberField()) {
-            $memberField = $this->getMemberField();
-            $record = $this->dao->findWhere([$memberField => $this->memberId, 'id' => $id]);
-            if (!$record) {
-                throw new \Exception('无权删除此数据');
-            }
-        }
-
-        return $this->dao->delete($id);
+        // 检查数据归属
+        $memberId = $this->getCurrentMemberId();
+        return $this->dao->deleteByUser($id, $memberId);
     }
 
     /**
-     * 获取会员ID
-     *
-     * @return int|null
+     * 获取当前会员ID
      */
-    protected function getMemberId(): ?int
+    protected function getCurrentMemberId(): ?int
     {
         try {
-            $currentMember = \app\api\CurrentMember::create();
-            return $currentMember->id();
+            return Container::make(CurrentMember::class)->id();
         } catch (\Exception $e) {
-            return null;
+            throw new \Exception('请先登录');
         }
-    }
-
-    /**
-     * 检查是否有会员关联字段
-     *
-     * @return bool
-     */
-    protected function hasMemberField(): bool
-    {
-        return in_array('member_id', (new {Model}())->getFillable());
-    }
-
-    /**
-     * 获取会员关联字段名
-     *
-     * @return string|null
-     */
-    protected function getMemberField(): ?string
-    {
-        return $this->hasMemberField() ? 'member_id' : null;
     }
 }
 ```
 
-## Complete Example (App)
+## Complete Example (Plugin - 基于 portal 实际实现)
 
 ```php
 <?php
@@ -231,119 +147,74 @@ declare(strict_types=1);
  *+------------------
  * madong
  *+------------------
- * Copyright (c) https://gitee.com/motion-code All rights reserved.
+ * Copyright (c) https://gitee.com/motion-code  All rights reserved.
  *+------------------
  * Author: Mr. April (405784684@qq.com)
  *+------------------
+ * Official Website: http://www.madong.tech
  */
 
-namespace app\service\api\question;
+namespace plugin\portal\app\api\service\question;
 
-use app\dao\question\QuestionDao;
-use app\model\question\Question;
-use core\base\BaseService;
+use app\api\CurrentMember;
+use plugin\portal\app\event\QuestionCreatedEvent;
+use plugin\portal\app\event\QuestionUpdatedEvent;
+use core\foundation\base\BaseService;
+use plugin\portal\app\dao\question\QuestionDao;
+use plugin\portal\app\model\question\Question;
+use support\Container;
+use Exception;
 
-/**
- * 问题前台API服务类
- *
- * Class QuestionService
- */
 class QuestionService extends BaseService
 {
-    public function __construct(QuestionDao $dao)
+    public function __construct(
+        QuestionDao $dao,
+        private readonly TagService $tagService
+    )
     {
         $this->dao = $dao;
     }
 
-    public function selectList(array $where = [], string $field = '*', int $page = 1, int $limit = 20, string $order = 'id desc'): array
+    public function getList(array $args): array
     {
-        $list = $this->dao->selectList($where, $field, $page, $limit, $order);
-        return Question::formatList($list);
+        return $this->dao->getList($args);
     }
 
-    public function count(array $where = []): int
+    public function detail(int $id): array
     {
-        return $this->dao->count($where);
+        $question = $this->dao->getDetail($id);
+        // 格式化数据...
+        return $formattedData ?? [];
     }
 
-    public function get(int $id, array $field = ['*']): array
+    public function create(array $data): array
     {
-        $data = $this->dao->findOrFail($id, $field);
-        return Question::formatDetail($data);
+        $memberId = Container::make(CurrentMember::class)->id();
+        return $this->transaction(function () use ($memberId, $data) {
+            $question = $this->save($data);
+            $question->tags()->sync($data['tags'] ?? []);
+            $event = new QuestionCreatedEvent($question);
+            $event->dispatch();
+            return $question->load(['tags', 'member'])->toArray();
+        });
     }
 
-    public function save(array $data): Question
+    public function update(string $id, array $data): array
     {
-        if (isset($this->memberId)) {
-            $data['member_id'] = $this->memberId;
-        }
-        return $this->dao->create($data);
+        return $this->transaction(function () use ($id, $data) {
+            // 检查会员归属
+            $question = Question::where('id', $id)
+                ->where('member_id', $memberId)
+                ->first();
+            // 更新逻辑...
+        });
     }
 
-    public function update(int $id, array $data): bool
+    public function delete(string $id): bool
     {
-        $record = $this->dao->findWhere(['member_id' => $this->memberId, 'id' => $id]);
-        if (!$record) {
-            throw new \Exception('无权修改此问题');
-        }
-        return $this->dao->update($id, $data);
+        $userId = Container::make(CurrentMember::class)->id();
+        return $this->dao->deleteByUser($id, $userId);
     }
-
-    public function delete(int $id): bool
-    {
-        $record = $this->dao->findWhere(['member_id' => $this->memberId, 'id' => $id]);
-        if (!$record) {
-            throw new \Exception('无权删除此问题');
-        }
-        return $this->dao->delete($id);
-    }
-
-    protected function getMemberId(): ?int
-    {
-        try {
-            return \app\api\CurrentMember::create()->id();
-        } catch (\Exception $e) {
-            return null;
-        }
-    }
-}
-```
-
-## Complete Example (Plugin)
-
-```php
-<?php
-
-declare(strict_types=1);
-/**
- *+------------------
- * madong
- *+------------------
- * Copyright (c) https://gitee.com/motion-code All rights reserved.
- *+------------------
- * Author: Mr. April (405784684@qq.com)
- *+------------------
- */
-
-namespace plugin\official\app\service\api\question;
-
-use plugin\official\app\dao\question\QuestionDao;
-use plugin\official\app\model\question\Question;
-use core\base\BaseService;
-
-/**
- * 问题前台API服务类
- *
- * Class QuestionService
- */
-class QuestionService extends BaseService
-{
-    public function __construct(QuestionDao $dao)
-    {
-        $this->dao = $dao;
-    }
-
-    // ... 方法同上
 }
 ```
 
@@ -353,29 +224,28 @@ class QuestionService extends BaseService
 
 | Method | Description |
 |--------|-------------|
-| `selectList()` | Get paginated list |
-| `count()` | Get total count |
-| `get()` | Get single record |
-| `save()` | Create new record (with member_id if applicable) |
+| `getList()` | Get paginated list with custom query |
+| `detail()` | Get detail with formatted data |
+| `create()` | Create new record (with transaction) |
 | `update()` | Update existing record (with ownership check) |
 | `delete()` | Delete record (with ownership check) |
 
-### Member Support Methods
+### DAO Methods (via __call)
 
 | Method | Description |
 |--------|-------------|
-| `getMemberId()` | Get current member ID |
-| `hasMemberField()` | Check if model has member_id field |
-| `getMemberField()` | Get member field name |
+| `save()` | Save record (delegated to DAO) |
+| `count()` | Count records |
+| `selectList()` | Select paginated list |
 
 ## Auto-generation Checklist
 
 When generating API service:
-- [ ] Set correct namespace based on target
-- [ ] Import BaseService
-- [ ] Import DAO
-- [ ] Import Model class
+- [ ] Set correct namespace `{ns}\api\service\{module}`
+- [ ] Import `core\foundation\base\BaseService`
+- [ ] Import DAO and Model classes
 - [ ] Inject DAO in constructor
-- [ ] Implement standard CRUD methods
-- [ ] Add member ownership check for update/delete
-- [ ] Add getMemberId() helper method
+- [ ] Import `CurrentMember` via `Container::make()`
+- [ ] Implement custom business methods (not generic CRUD)
+- [ ] Add transaction support for complex operations
+- [ ] Add ownership check for update/delete

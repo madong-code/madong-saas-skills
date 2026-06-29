@@ -52,7 +52,7 @@ declare(strict_types=1);
 namespace {ns}\dao\{module};
 
 use {model_ns}\{module}\{Model};
-use core\base\BaseDao;
+use core\foundation\base\BaseDao;
 
 /**
  * {Model}数据访问层

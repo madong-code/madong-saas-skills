@@ -50,9 +50,10 @@ use app\adminapi\middleware\AccessTokenMiddleware;
 use app\adminapi\middleware\OperationMiddleware;
 use app\adminapi\middleware\PermissionMiddleware;
 use {service_ns}\{module}\{Model}Service;
-use core\tool\Json;
-use madong\swagger\attribute\Permission;
+use core\foundation\tool\Json;
+use madong\swagger\annotation\response\PageResponse;
 use madong\swagger\annotation\response\SimpleResponse;
+use madong\swagger\attribute\Permission;
 use OpenApi\Attributes as OA;
 use support\annotation\Middleware;
 use support\Request;
@@ -76,38 +77,24 @@ final class {Model}Controller extends Crud
             new OA\Parameter(name: "limit", description: "每页数量", in: "query", schema: new OA\Schema(type: "integer")),
         ],
         responses: [
-            new OA\Response(
-                response: 200,
-                description: "成功",
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: "code", type: "integer", example: 0),
-                    new OA\Property(property: "msg", type: "string", example: "获取成功"),
-                    new OA\Property(property: "data", properties: [
-                        new OA\Property(property: "total", type: "integer", example: 10),
-                        new OA\Property(property: "list", type: "array", items: new OA\Items()),
-                    ], type: "object"),
-                ])
-            ),
+            new OA\Response(response: 200, description: '获取成功'),
         ]
     )]
-    #[Permission("{module}:{model}:list")]
+    #[Permission(code: '{module}:{model}:list')]
+    #[PageResponse(schema: [], example: [])]
     public function index(Request $request): \support\Response
     {
-        try {
-            [$where, $format, $limit, $field, $order, $page] = $this->selectInput($request);
-            $methods         = [
-                'select'     => 'formatSelect',
-                'tree'       => 'formatTree',
-                'table_tree' => 'formatTableTree',
-                'normal'     => 'formatNormal',
-            ];
-            $format_function = $methods[$format] ?? 'formatNormal';
-            $total           = $this->service->getCount($where);
-            $list            = $this->service->selectList($where, $field, $page, $limit, $order, [], false);
-            return call_user_func([$this, $format_function], $list, $total);
-        } catch (\Throwable $e) {
-            return Json::fail($e->getMessage());
-        }
+        [$where, $format, $limit, $field, $order, $page] = $this->selectInput($request);
+        $methods         = [
+            'select'     => 'formatSelect',
+            'tree'       => 'formatTree',
+            'table_tree' => 'formatTableTree',
+            'normal'     => 'formatNormal',
+        ];
+        $format_function = $methods[$format] ?? 'formatNormal';
+        $total           = $this->service->getCount($where);
+        $list            = $this->service->selectList($where, $field, $page, $limit, $order, [], false);
+        return call_user_func([$this, $format_function], $list, $total);
     }
 
     #[OA\Get(
@@ -115,23 +102,19 @@ final class {Model}Controller extends Crud
         summary: '详情',
         tags: ['{Module}-{Model}'],
         responses: [
-            new OA\Response(
-                response: 200,
-                description: "成功",
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: "code", type: "integer", example: 0),
-                    new OA\Property(property: "msg", type: "string", example: "获取成功"),
-                ])
-            ),
+            new OA\Response(response: 200, description: '获取成功'),
         ],
         x: [
             SchemaConstants::X_PROPERTY_IN => 'id',
         ]
     )]
-    #[Permission("{module}:{model}:read")]
+    #[Permission(code: '{module}:{model}:read')]
+    #[SimpleResponse(schema: [], example: [])]
     public function show(Request $request): \support\Response
     {
-        return parent::show($request);
+        $id     = $request->route->param('id');
+        $result = $this->service->get($id, ['*']);
+        return Json::success($result->toArray());
     }
 
     #[OA\Post(
@@ -139,18 +122,11 @@ final class {Model}Controller extends Crud
         summary: '创建',
         tags: ['{Module}-{Model}'],
         responses: [
-            new OA\Response(
-                response: 200,
-                description: "成功",
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: "code", type: "integer", example: 0),
-                    new OA\Property(property: "msg", type: "string", example: "创建成功"),
-                ])
-            ),
+            new OA\Response(response: 200, description: '创建成功'),
         ],
     )]
-    #[Permission("{module}:{model}:create")]
-    #[SimpleResponse(example: '{"code":0,"msg":"created","id":1}')]
+    #[Permission(code: '{module}:{model}:create')]
+    #[SimpleResponse(schema: [], example: [])]
     public function store(Request $request): \support\Response
     {
         return parent::store($request);
@@ -164,17 +140,11 @@ final class {Model}Controller extends Crud
             new OA\Parameter(name: "id", description: "ID", in: "path", required: true, schema: new OA\Schema(type: "integer")),
         ],
         responses: [
-            new OA\Response(
-                response: 200,
-                description: "成功",
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: "code", type: "integer", example: 0),
-                    new OA\Property(property: "msg", type: "string", example: "更新成功"),
-                ])
-            ),
+            new OA\Response(response: 200, description: '更新成功'),
         ]
     )]
-    #[Permission("{module}:{model}:update")]
+    #[Permission(code: '{module}:{model}:update')]
+    #[SimpleResponse(schema: [], example: [])]
     public function update(Request $request): \support\Response
     {
         return parent::update($request);
@@ -188,20 +158,14 @@ final class {Model}Controller extends Crud
             new OA\Parameter(name: "id", description: "ID", in: "path", required: true, schema: new OA\Schema(type: "integer")),
         ],
         responses: [
-            new OA\Response(
-                response: 200,
-                description: "成功",
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: "code", type: "integer", example: 0),
-                    new OA\Property(property: "msg", type: "string", example: "删除成功"),
-                ])
-            ),
+            new OA\Response(response: 200, description: '删除成功'),
         ],
         x: [
             SchemaConstants::X_PROPERTY_IN => 'id',
         ]
     )]
-    #[Permission("{module}:{model}:delete")]
+    #[Permission(code: '{module}:{model}:delete')]
+    #[SimpleResponse(schema: [], example: [])]
     public function destroy(Request $request): \support\Response
     {
         return parent::destroy($request);
@@ -213,8 +177,9 @@ final class {Model}Controller extends Crud
         tags: ['{Module}-{Model}'],
         x: [SchemaConstants::X_SCHEMA_REQUEST => \app\schema\request\BatchDeleteRequest::class],
     )]
-    #[Permission("{module}:{model}:delete")]
-    public function batchDelete(Request $request): \support\Response
+    #[Permission(code: '{module}:{model}:delete')]
+    #[SimpleResponse(schema: [], example: [])]
+    public function batchDestroy(Request $request): \support\Response
     {
         return parent::destroy($request);
     }
@@ -244,9 +209,10 @@ use app\adminapi\middleware\AccessTokenMiddleware;
 use app\adminapi\middleware\OperationMiddleware;
 use app\adminapi\middleware\PermissionMiddleware;
 use app\service\admin\member\MemberService;
-use core\tool\Json;
-use madong\swagger\attribute\Permission;
+use core\foundation\tool\Json;
+use madong\swagger\annotation\response\PageResponse;
 use madong\swagger\annotation\response\SimpleResponse;
+use madong\swagger\attribute\Permission;
 use OpenApi\Attributes as OA;
 use support\annotation\Middleware;
 use support\Request;
@@ -263,77 +229,63 @@ final class MemberController extends Crud
 
     #[OA\Get(
         path: '/member/user',
-        summary: '会员用户列表',
+        summary: '列表',
         tags: ['会员用户'],
-        parameters: [
-            new OA\Parameter(name: "username", description: "用户名", in: "query", schema: new OA\Schema(type: "string")),
-            new OA\Parameter(name: "nickname", description: "昵称", in: "query", schema: new OA\Schema(type: "string")),
-            new OA\Parameter(name: "page", description: "页码", in: "query", schema: new OA\Schema(type: "integer")),
-            new OA\Parameter(name: "limit", description: "每页数量", in: "query", schema: new OA\Schema(type: "integer")),
-        ],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: "成功",
-                content: new OA\JsonContent(properties: [
-                    new OA\Property(property: "code", type: "integer", example: 0),
-                    new OA\Property(property: "msg", type: "string", example: "获取成功"),
-                ])
-            ),
-        ]
     )]
-    #[Permission("member:user:list")]
+    #[Permission(code: 'member:user:list')]
+    #[PageResponse(schema: [], example: [])]
     public function index(Request $request): \support\Response
     {
-        try {
-            [$where, $format, $limit, $field, $order, $page] = $this->selectInput($request);
-            $methods         = [
-                'select'     => 'formatSelect',
-                'tree'       => 'formatTree',
-                'table_tree' => 'formatTableTree',
-                'normal'     => 'formatNormal',
-            ];
-            $format_function = $methods[$format] ?? 'formatNormal';
-            $total           = $this->service->getCount($where);
-            $list            = $this->service->selectList($where, $field, $page, $limit, $order, ['level', 'tags'], false);
-            return call_user_func([$this, $format_function], $list, $total);
-        } catch (\Throwable $e) {
-            return Json::fail($e->getMessage());
-        }
+        [$where, $format, $limit, $field, $order, $page] = $this->selectInput($request);
+        $methods         = [
+            'select'     => 'formatSelect',
+            'tree'       => 'formatTree',
+            'table_tree' => 'formatTableTree',
+            'normal'     => 'formatNormal',
+        ];
+        $format_function = $methods[$format] ?? 'formatNormal';
+        $total           = $this->service->getCount($where);
+        $list            = $this->service->selectList($where, $field, $page, $limit, $order, ['level', 'tags'], false);
+        return call_user_func([$this, $format_function], $list, $total);
     }
 
     #[OA\Get(
         path: '/member/user/{id}',
-        summary: '会员用户详情',
+        summary: '详情',
         tags: ['会员用户'],
         responses: [
-            new OA\Response(response: 200, description: "成功"),
+            new OA\Response(response: 200, description: '获取成功'),
         ],
         x: [SchemaConstants::X_PROPERTY_IN => 'id']
     )]
-    #[Permission("member:user:read")]
+    #[Permission(code: 'member:user:read')]
+    #[SimpleResponse(schema: [], example: [])]
     public function show(Request $request): \support\Response
     {
-        return parent::show($request);
+        $id     = $request->route->param('id');
+        $result = $this->service->get($id, ['*']);
+        return Json::success($result->toArray());
     }
 
     #[OA\Post(path: '/member/user', summary: '创建', tags: ['会员用户'])]
-    #[Permission("member:user:create")]
-    #[SimpleResponse(example: '{"code":0,"msg":"created","id":1}')]
+    #[Permission(code: 'member:user:create')]
+    #[SimpleResponse(schema: [], example: [])]
     public function store(Request $request): \support\Response
     {
         return parent::store($request);
     }
 
     #[OA\Put(path: '/member/user/{id}', summary: '更新', tags: ['会员用户'])]
-    #[Permission("member:user:update")]
+    #[Permission(code: 'member:user:update')]
+    #[SimpleResponse(schema: [], example: [])]
     public function update(Request $request): \support\Response
     {
         return parent::update($request);
     }
 
     #[OA\Delete(path: '/member/user/{id}', summary: '删除', tags: ['会员用户'])]
-    #[Permission("member:user:delete")]
+    #[Permission(code: 'member:user:delete')]
+    #[SimpleResponse(schema: [], example: [])]
     public function destroy(Request $request): \support\Response
     {
         return parent::destroy($request);
@@ -361,6 +313,14 @@ final class MemberController extends Crud
 | Create | `{module}:{model}:create` | Create new |
 | Update | `{module}:{model}:update` | Update existing |
 | Delete | `{module}:{model}:delete` | Delete records |
+
+> **注意**: 权限注解使用 `#[Permission(code: '...')]` 格式（基于 portal 实际实现）
+
+## Batch Operation
+
+| Method | Action | Description |
+|--------|--------|-------------|
+| `batchDestroy()` | Delete | 批量删除（代替旧版 `batchDelete`） |
 
 ## Middleware Stack
 

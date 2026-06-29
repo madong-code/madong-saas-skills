@@ -25,7 +25,7 @@ plugin/{plugin}/app/model/{module}/{Model}.php
 |------|-----|--------|
 | `{prefix}` | `` (空) | `plugin\{Plugin}` |
 | `{ns}` | `app` | `plugin\{Plugin}\app` |
-| `{base_model}` | `core\base\BaseModel` | `plugin\{Plugin}\app\model\BaseModel` |
+| `{base_model}` | `core\foundation\base\BaseModel` | `plugin\{Plugin}\app\model\BaseModel` |
 
 ## Model Template
 
@@ -72,9 +72,9 @@ class {Model} extends BaseModel
     protected $primaryKey = 'id';
 
     /**
-     * 是否自增
+     * 是否自增（雪花ID 设为 false）
      */
-    public $incrementing = true;
+    public $incrementing = false;
 
     /**
      * 可批量赋值的字段
@@ -91,7 +91,7 @@ class {Model} extends BaseModel
     ];
 
     /**
-     * 类型转换
+     * 类型转换（雪花ID 类型设为 string）
      */
     protected $casts = [
         {casts}
@@ -279,7 +279,7 @@ class Member extends BaseModel
 }
 ```
 
-## Complete Example (Plugin)
+## Complete Example (Plugin - 基于 portal 实际实现)
 
 ```php
 <?php
@@ -289,55 +289,65 @@ declare(strict_types=1);
  *+------------------
  * madong
  *+------------------
- * Copyright (c) https://gitee.com/motion-code All rights reserved.
+ * Copyright (c) https://gitee.com/motion-code  All rights reserved.
  *+------------------
  * Author: Mr. April (405784684@qq.com)
  *+------------------
+ * Official Website: http://www.madong.tech
  */
 
-namespace plugin\official\app\model\question;
+namespace plugin\portal\app\model\question;
 
-use plugin\official\app\model\BaseModel;
+use plugin\portal\app\model\BaseModel;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * 问题模型
- *
- * Class Question
  */
 class Question extends BaseModel
 {
     use SoftDeletes;
 
-    protected $table = 'official_ask_questions';
-    protected $primaryKey = 'id';
-    public $incrementing = true;
+    protected $table = 'portal_ask_question';
 
     protected $fillable = [
-        'category_id',
-        'title',
-        'content',
-        'price',
-        'view_count',
-        'status',
+        'id', 'category_id', 'title', 'content', 'view_count', 'like_count',
+        'collect_count', 'comment_count', 'member_id', 'is_sticky',
+        'sticky_order', 'is_excellent', 'is_solved', 'solved_answer_id',
+        'created_at', 'updated_at',
     ];
 
     protected $casts = [
-        'category_id' => 'integer',
-        'price'       => 'decimal:2',
-        'view_count'  => 'integer',
-        'status'      => 'integer',
-        'created_at'  => 'integer',
-        'updated_at'  => 'integer',
-        'deleted_at'  => 'integer',
+        'id'               => 'string',     // 雪花ID
+        'category_id'      => 'string',     // 雪花ID
+        'view_count'       => 'integer',
+        'like_count'       => 'integer',
+        'collect_count'    => 'integer',
+        'comment_count'    => 'integer',
+        'member_id'        => 'string',     // 雪花ID
+        'is_sticky'        => 'integer',
+        'sticky_order'     => 'integer',
+        'is_excellent'     => 'integer',
+        'is_solved'        => 'integer',
+        'solved_answer_id' => 'string',     // 雪花ID
+        'created_at'       => 'integer',
+        'updated_at'       => 'integer',
+        'deleted_at'       => 'integer',
     ];
 
-    /**
-     * 关联分类
-     */
     public function category(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id', 'id');
+    }
+
+    public function answers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Answer::class, 'question_id', 'id');
+    }
+
+    public function tags(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, QuestionTag::class, 'question_id', 'tag_id');
     }
 }
 ```
@@ -395,17 +405,20 @@ public function cover(): \Illuminate\Database\Eloquent\Relations\HasOne
 
 ## Cast Types
 
-| Type | Example |
-|------|---------|
-| integer | `'id' => 'integer'` |
-| float | `'price' => 'float'` |
-| decimal | `'price' => 'decimal:2'` |
-| boolean | `'is_hot' => 'boolean'` |
-| string | `'name' => 'string'` |
-| array | `'data' => 'array'` |
-| object | `'data' => 'object'` |
-| datetime | `'created_at' => 'datetime'` |
-| timestamp | `'created_at' => 'timestamp'` |
+| Type | Example | Notes |
+|------|---------|-------|
+| string | `'id' => 'string'` | **雪花ID 必须用 string** |
+| integer | `'view_count' => 'integer'` | |
+| float | `'price' => 'float'` | |
+| decimal | `'price' => 'decimal:2'` | |
+| boolean | `'is_hot' => 'boolean'` | |
+| string | `'name' => 'string'` | |
+| array | `'data' => 'array'` | |
+| object | `'data' => 'object'` | |
+| datetime | `'created_at' => 'datetime'` | |
+| timestamp | `'created_at' => 'timestamp'` | |
+
+> **重要**: 雪花ID 在 `$casts` 中必须设为 `'string'`，不要设为 `'integer'`，否则 JSON 序列化时精度会丢失。
 
 ## Attribute Mutators
 

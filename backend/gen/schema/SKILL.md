@@ -21,6 +21,8 @@ plugin/{plugin}/app/schema/request/{module}/{Model}Request.php
 plugin/{plugin}/app/schema/response/{module}/{Model}Response.php
 ```
 
+> **注意**: 基于 portal 实际实现，plugin schema 目录可以为空（Swagger 直接从 controller/service 注解扫描）。Generate 时可以跳过 plugin schema 生成，除非需要显式 Request/Response DTO。
+
 ## Target Variables
 
 | 变量 | App | Plugin |

@@ -140,20 +140,22 @@ Route::group('/api', function () {
 });
 ```
 
-## Plugin Route Template
+## Plugin Route Template（基于 portal 实际实现）
+
+> **注意**: portal 的 `/api` 和 `/adminapi` 路由直接注册，不嵌套在 `/{plugin_path}` 组下。两个路由组各自注册 Swagger，使用 `base_path()` 定位扫描路径。
 
 ```php
 <?php
-
-declare(strict_types=1);
 /**
- *+------------------
- * madong
- *+------------------
- * Copyright (c) https://gitee.com/motion-code All rights reserved.
- *+------------------
- * Author: Mr. April (405784684@qq.com)
- *+------------------
+ * This file is part of webman.
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the MIT-LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @author    walkor<walkor@workerman.net>
+ * @copyright walkor<walkor@workerman.net>
+ * @link      http://www.workerman.net/
+ * @license   http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
 use Webman\Route;
@@ -161,36 +163,23 @@ use WebmanTech\Swagger\Swagger;
 use OpenApi\Annotations as OA;
 
 /**
- * 注册{Plugin}插件路由
+ * 注册API路由
  */
-Route::group('/{plugin_path}', function () {
-    // AdminAPI 路由
-    Route::group('/adminapi', function () {
-        // 控制器自动加载，无需手动注册
-    });
-
-    // API 路由
-    Route::group('/api', function () {
-        // 控制器自动加载，无需手动注册
-    });
-
-    // Swagger 文档注册
+Route::group('/api', function () {
     Swagger::create()->registerRoute([
-        'route_prefix'   => '/openapi',
+        'route_prefix'   => '/{plugin}/openapi',
         'register_route' => true,
         'openapi_doc'    => [
             'scan_path' => [
-                // 插件的 adminapi 目录
-                __DIR__ . '/app/adminapi',
-                // 插件的 api 目录
-                __DIR__ . '/app/api',
+                base_path('app/schema'),
+                base_path('plugin/{plugin}/app/api'),
             ],
             'modify'    => function (OA\OpenApi $openapi) {
-                $openapi->info->title   = '{Plugin} API';
+                $openapi->info->title   = config('app.name') . ' API';
                 $openapi->info->version = '1.0.0';
                 $openapi->servers       = [
                     new OA\Server([
-                        'url'         => '/{plugin_path}',
+                        'url'         => '/api',
                         'description' => request()->host(),
                     ]),
                 ];
@@ -203,7 +192,43 @@ Route::group('/{plugin_path}', function () {
                     new OA\SecurityScheme([
                         'securityScheme' => 'api_key',
                         'type'           => 'apiKey',
-                        'name'           => config('madong.jwt.app.token_name', 'Authorization'),
+                        'name'           => config('core.jwt.app.token_name', 'Authorization'),
+                        'in'             => 'header',
+                    ]),
+                ];
+            },
+        ],
+    ]);
+});
+
+Route::group('/adminapi', function () {
+    Swagger::create()->registerRoute([
+        'route_prefix'   => '/{plugin}/openapi',
+        'register_route' => true,
+        'openapi_doc'    => [
+            'scan_path' => [
+                base_path('app/schema'),
+                base_path('plugin/{plugin}/app/adminapi'),
+            ],
+            'modify'    => function (OA\OpenApi $openapi) {
+                $openapi->info->title   = config('app.name') . ' API';
+                $openapi->info->version = '1.0.0';
+                $openapi->servers       = [
+                    new OA\Server([
+                        'url'         => '/adminapi',
+                        'description' => request()->host(),
+                    ]),
+                ];
+
+                if (!$openapi->components instanceof OA\Components) {
+                    $openapi->components = new OA\Components([]);
+                }
+
+                $openapi->components->securitySchemes = [
+                    new OA\SecurityScheme([
+                        'securityScheme' => 'api_key',
+                        'type'           => 'apiKey',
+                        'name'           => config('core.jwt.app.token_name', 'Authorization'),
                         'in'             => 'header',
                     ]),
                 ];
@@ -253,19 +278,29 @@ app/adminapi/controller/{module}/{Model}Controller.php
 
 ### Plugin OpenAPI Scan
 
+> **注意**: 使用 `base_path()` 定位插件路径（基于 portal 实现）
+
 ```php
+// API 路由 scan_path
 'scan_path' => [
-    __DIR__ . '/app/adminapi',    // Plugin AdminAPI
-    __DIR__ . '/app/api',         // Plugin API
+    base_path('app/schema'),
+    base_path('plugin/{plugin}/app/api'),
+],
+
+// AdminAPI 路由 scan_path
+'scan_path' => [
+    base_path('app/schema'),
+    base_path('plugin/{plugin}/app/adminapi'),
 ],
 ```
 
 ## Auto-generation Checklist
 
 When generating route:
-- [ ] Create adminapi/config/route.php with Swagger
-- [ ] Create api/config/route.php with Swagger
-- [ ] Configure scan_path to include all relevant directories
-- [ ] Set correct security scheme (Authorization header)
+- [ ] Create plugin/{plugin}/config/route.php
+- [ ] `/api` 和 `/adminapi` 各自注册 Swagger（不嵌套在插件组下）
+- [ ] Configure scan_path: `base_path('app/schema')` + `base_path('plugin/{plugin}/app/api')`
+- [ ] Set correct security scheme: `config('core.jwt.app.token_name', 'Authorization')`
+- [ ] Configure route_prefix: `/{plugin}/openapi`
 - [ ] Configure server URL and description
-- [ ] For plugins, use __DIR__ for relative paths
+- [ ] For plugins, use `base_path()` for paths
